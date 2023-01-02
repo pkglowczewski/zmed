@@ -1,51 +1,82 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
 library(shiny)
+library(DT)
+library(openxlsx)
+library(leaflet)
+library(RColorBrewer)
+library(plotly)
 
-# Define UI for application that draws a histogram
 ui <- fluidPage(
-
-    # Application title
-    titlePanel("Old Faithful Geyser Data"),
-
-    # Sidebar with a slider input for number of bins 
-    sidebarLayout(
-        sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
-        ),
-
-        # Show a plot of the generated distribution
-        mainPanel(
-           plotOutput("distPlot")
-        )
-    )
+  tabsetPanel(
+    tabPanel("Map", fluid = TRUE,
+             plotOutput("plot1",
+                        click = "plot_click",
+                        dblclick = "plot_dblclick",
+                        hover = "plot_hover",
+                        brush = "plot_brush"
+             ),
+             verbatimTextOutput("info"),
+             h2("Read CSV from url"),
+             DTOutput("csv")
+    ),
+    tabPanel("plot", fluid = TRUE,
+             leafletOutput("mymap"),
+             p(),
+             actionButton("recalc", "New points")
+             )
+    
+  )
 )
 
-# Define server logic required to draw a histogram
-server <- function(input, output) {
-
-    output$distPlot <- renderPlot({
-        # generate bins based on input$bins from ui.R
-        x    <- faithful[, 2]
-        bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
-        # draw the histogram with the specified number of bins
-        hist(x, breaks = bins, col = 'darkgray', border = 'white',
-             xlab = 'Waiting time to next eruption (in mins)',
-             main = 'Histogram of waiting times')
-    })
+server <- function(input, output){
+  
+  df <- read.xlsx("https://github.com/pkglowczewski/zmed/raw/master/ANTYSMOG.xlsx",sheet=1)
+  
+  output$plot1 <- renderPlot({
+    plot(df$pm25_avg, df$pm25_avg)
+  })
+  
+  output$info <- renderText({
+    xy_str <- function(e) {
+      if(is.null(e)) return("NULL\n")
+      paste0("x=", round(e$x, 1), " y=", round(e$y, 1), "\n")
+    }
+    xy_range_str <- function(e) {
+      if(is.null(e)) return("NULL\n")
+      paste0("xmin=", round(e$xmin, 1), " xmax=", round(e$xmax, 1), 
+             " ymin=", round(e$ymin, 1), " ymax=", round(e$ymax, 1))
+    }
+    
+    paste0(
+      "click: ", xy_str(input$plot_click),
+      "dblclick: ", xy_str(input$plot_dblclick),
+      "hover: ", xy_str(input$plot_hover),
+      "brush: ", xy_range_str(input$plot_brush)
+    )
+  })
+  
+  output$csv <- renderDataTable({
+    df
+  })
+  
+  result <- df %>% select('school_latitude','school_longitude')
+  points <- eventReactive(input$recalc, {
+    cbind(as.double(df$school_longitude), as.double(df$school_latitude))
+  }, ignoreNULL = FALSE)
+  
+  
+  output$mymap <- renderLeaflet({
+    leaflet() %>%
+      addProviderTiles(providers$Stamen.TonerLite,
+                       options = providerTileOptions(noWrap = TRUE)
+      ) %>%
+      addCircleMarkers(data = points())
+  })
+  observeEvent(input$mymap_marker_click, { 
+    p <- input$mymap_marker_click
+    print(p[3])
+    print(p[4])
+  })
 }
 
-# Run the application 
+
 shinyApp(ui = ui, server = server)
