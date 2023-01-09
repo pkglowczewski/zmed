@@ -1,12 +1,7 @@
 library(shiny)
-library(DT)
 library(openxlsx)
-library(leaflet)
 library(RColorBrewer)
 library(plotly)
-library(ECharts2Shiny)
-library(spData)
-library(sf)
 df <-
   read.xlsx("https://github.com/pkglowczewski/zmed/raw/master/osoby_pl.xlsx",
             sheet = 1)
