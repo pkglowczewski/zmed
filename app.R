@@ -2,6 +2,7 @@ library(shiny)
 library(openxlsx)
 library(RColorBrewer)
 library(plotly)
+library(DT)
 df <-
   read.xlsx("https://github.com/pkglowczewski/zmed/raw/master/osoby_pl.xlsx",
             sheet = 1)
