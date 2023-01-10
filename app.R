@@ -92,8 +92,6 @@ server <- function(input, output) {
              xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
              yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))})
   
-  thematic::thematic_shiny()
-  
   output$plot <- renderPlot({
     ggplot(df, aes(df$WOJEWÓDZTWO, df$POWYZEJ_18)) +
       geom_point() +
