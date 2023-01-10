@@ -14,7 +14,7 @@ ui <-navbarPage(
            DTOutput("csv")),
   navbarMenu("Wykresy",
             tabPanel("WYKRES LEJKOWY",
-                     plotlyOutput(outputId = "plot1", height = '800px', width = 'auto')),
+                     plotlyOutput(outputId = "funnelChart", height = '800px', width = 'auto')),
             tabPanel("WYKRES KOŁOWY",
                      selectizeInput(
                        inputId = "woje", 
@@ -23,53 +23,53 @@ ui <-navbarPage(
                        selected = "POMORSKIE",
                        multiple = TRUE
                      ),
-                     plotlyOutput("test", height = '800px', width = 'auto')),
+                     plotlyOutput("pieChart", height = '800px', width = 'auto')),
             tabPanel("WYKRES SŁUPKOWY PIONOWY",
                      selectizeInput(
-                       inputId = "cities", 
+                       inputId = "voivodeship", 
                        label = "Wybierz województwo", 
                        choices = unique(df$WOJEWÓDZTWO), 
                        selected = "POMORSKIE",
                        multiple = TRUE
                      ),
                      selectInput(
-                       "dataWyk6",
+                       "dataBarChart",
                        "Dane wejściowe",
                        choices = names(df),
                        selected = names(df)[1]
                      ),
-                     plotlyOutput(outputId = "p", height = '800px', width = 'auto')),
+                     plotlyOutput(outputId = "barChart", height = '800px', width = 'auto')),
             tabPanel("WYKRES SŁUPKOWY POZIOMY",
-                     plotlyOutput("c", height = '800px', width = 'auto')),
+                     plotlyOutput("barChart2", height = '800px', width = 'auto')),
             tabPanel("WYKRES BĄBELKOWY",
                      plotlyOutput("bubble", height = '800px', width = 'auto')),
              )
   
 )
 server <- function(input, output) {
-  newData4<- df%>%
+  groupDataPlot1<- df%>%
     group_by(WOJEWÓDZTWO)%>%
     summarise(WSZYSCY = sum(WSZYSCY),KOBIETY_ZAMELDOWANE= sum(KOBIETY_ZAMELDOWANE), MEZCZYZNI_ZAMELDOWANE= sum(MEZCZYZNI_ZAMELDOWANE))
-  newData5<-newData4[order(newData4$WSZYSCY,decreasing=TRUE),]
-  print(newData5)
-  output$plot1 <- renderPlotly({
+  sortedGroupDataPlot1<-groupDataPlot1[order(groupDataPlot1$WSZYSCY,decreasing=TRUE),]
+  
+  output$funnelChart <- renderPlotly({
     plot_ly(
         type = "funnel",
         orientation = "h",
         name = 'KOBIETY ZAMELDOWANE',
-        y = newData5$WOJEWÓDZTWO,
-        x = newData5$KOBIETY_ZAMELDOWANE,
+        y = sortedGroupDataPlot1$WOJEWÓDZTWO,
+        x = sortedGroupDataPlot1$KOBIETY_ZAMELDOWANE,
         textposition = "inside",
         textinfo = "value+percent total")%>%
       add_trace(
         type = "funnel",
         name = 'MĘŻCZYŹNI ZAMELDOWANI',
         orientation = "h",
-        y = newData5$WOJEWÓDZTWO,
-        x = newData5$MEZCZYZNI_ZAMELDOWANE,
+        y = sortedGroupDataPlot1$WOJEWÓDZTWO,
+        x = sortedGroupDataPlot1$MEZCZYZNI_ZAMELDOWANE,
         textposition = "inside",
         textinfo = "value+percent total") %>%
-      layout(yaxis = list(categoryarray = c(newData5$WOJEWÓDZTWO)))
+      layout(yaxis = list(categoryarray = c(sortedGroupDataPlot1$WOJEWÓDZTWO)))
     })
   
   output$csv <- renderDataTable({
@@ -80,33 +80,13 @@ server <- function(input, output) {
     brushedPoints(df, input$plot_brush)
   })
   
-  data1 <- reactive({
-    input$dane1
-  })
-  
-  data2 <- reactive({
-    input$dane2
-  })
-  
-  data11 <- reactive({
-    input$dane11
-  })
-  
-  data22 <- reactive({
-    input$dane22
-  })
-  
-  data4 <- reactive({
-    input$woj
-  })
-  
-  output$test<-renderPlotly({
-    newData2 <- df%>%
+  output$pieChart<-renderPlotly({
+    dataForPie <- df%>%
       filter(WOJEWÓDZTWO %in% input$woje) %>%
       group_by(WOJEWÓDZTWO)%>%
       summarise(WSZYSCY = sum(WSZYSCY))
-    USPersonalExpenditure <- data.frame("WOJEWÓDZTWO"=newData2$WOJEWÓDZTWO, newData2)
-    data <- USPersonalExpenditure[,c('WOJEWÓDZTWO', 'WSZYSCY')]
+    dataFramePie <- data.frame("WOJEWÓDZTWO"=dataForPie$WOJEWÓDZTWO, dataForPie)
+    data <- dataFramePie[,c('WOJEWÓDZTWO', 'WSZYSCY')]
     plot_ly(data, labels = ~WOJEWÓDZTWO, values = ~WSZYSCY, type = 'pie')  %>% 
       layout(title = 'Liczba ludzi w danym województwie',
              xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
@@ -122,11 +102,11 @@ server <- function(input, output) {
       ylab('Wszyscy')
   }, res = 96,)
   
-  data6 <- reactive({
-    input$dataWyk6  })
-  output$p <- renderPlotly({
-    plot_ly(df, x = ~WOJEWÓDZTWO, y = ~get(data6())) %>%
-      filter(WOJEWÓDZTWO %in% input$cities) %>%
+  fromInput <- reactive({
+    input$dataBarChart  })
+  output$barChart <- renderPlotly({
+    plot_ly(df, x = ~WOJEWÓDZTWO, y = ~get(fromInput())) %>%
+      filter(WOJEWÓDZTWO %in% input$voivodeship) %>%
       group_by(WOJEWÓDZTWO) %>%
       add_bars()%>%
       layout(xaxis = list(autotypenumbers = 'strict', title = 'WOJEWÓDZTWO'),
@@ -141,7 +121,7 @@ server <- function(input, output) {
                zerolinewidth = 2,
                gridcolor = 'ffff'))
   })
-  output$c <- renderPlotly({
+  output$barChart2 <- renderPlotly({
     plot_ly(df, x = ~POWYZEJ_18, y = ~WOJEWÓDZTWO, type = 'bar', orientation = 'h',
     marker = list(color = 'rgba(246, 78, 139, 1.0)',
                   line = list(color = 'rgba(246, 78, 139, 1.0)',
@@ -167,11 +147,11 @@ server <- function(input, output) {
                gridcolor = 'ffff'))
     
     })
-  newData3<- df%>%
+  dataForBubble<- df%>%
     group_by(WOJEWÓDZTWO)%>%
     summarise(PONIZEJ_18 = (sum(PONIZEJ_18)/10000),KOBIETY_PONIZEJ_18 = sum(KOBIETY_PONIZEJ_18),MEZCZYZNI_PONIZEJ_18 = sum(MEZCZYZNI_PONIZEJ_18))
   output$bubble <- renderPlotly({
-    plot_ly(newData3, x = ~KOBIETY_PONIZEJ_18, y = ~MEZCZYZNI_PONIZEJ_18, text = ~WOJEWÓDZTWO, type = 'scatter', mode = 'markers',
+    plot_ly(dataForBubble, x = ~KOBIETY_PONIZEJ_18, y = ~MEZCZYZNI_PONIZEJ_18, text = ~WOJEWÓDZTWO, type = 'scatter', mode = 'markers',
             marker = list(size = ~PONIZEJ_18, opacity = 0.8,color = 'rgb(255, 65, 54)'))%>% 
       layout(title = 'Ludzie poniżej 18 roku życia wg województw',
              xaxis = list(showgrid = FALSE),
