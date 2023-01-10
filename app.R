@@ -47,6 +47,8 @@ ui <-navbarPage(
   
 )
 server <- function(input, output) {
+  print(sessionInfo())
+  
   groupDataPlot1<- df%>%
     group_by(WOJEWÓDZTWO)%>%
     summarise(WSZYSCY = sum(WSZYSCY),KOBIETY_ZAMELDOWANE= sum(KOBIETY_ZAMELDOWANE), MEZCZYZNI_ZAMELDOWANE= sum(MEZCZYZNI_ZAMELDOWANE))
@@ -132,7 +134,31 @@ server <- function(input, output) {
                 marker = list(color = 'rgba(158, 171, 80, 1.0)',
                               line = list(color = 'rgba(158, 171, 80, 1.0)',
                                           width = 2)))%>%
-      layout(xaxis = list(autotypenumbers = 'strict', title = 'Porównanie poniżej i powyżej 18'),
+      add_trace(df,x = ~KOBIETY_ZAMELDOWANE,y = ~WOJEWÓDZTWO, name = 'Kobiety zameldowane',
+                marker = list(color = 'rgba(158, 71, 250, 1.0)',
+                              line = list(color = 'rgba(158, 71, 250, 1.0)',
+                                          width = 2)))%>%
+      add_trace(df,x = ~MEZCZYZNI_ZAMELDOWANE,y = ~WOJEWÓDZTWO, name = 'Mężczyźni zameldowani',
+                marker = list(color = 'rgba(58, 71, 180, 1.0)',
+                              line = list(color = 'rgba(58, 71, 180, 1.0)',
+                                          width = 2)))%>%
+      add_trace(df,x = ~KOBIETY_PONIZEJ_18,y = ~WOJEWÓDZTWO, name = 'Kobiety poniżej 18 lat',
+                marker = list(color = 'rgba(158, 71, 80, 1.0)',
+                              line = list(color = 'rgba(158, 71, 80, 1.0)',
+                                          width = 2)))%>%
+      add_trace(df,x = ~MEZCZYZNI_PONIZEJ_18 ,y = ~WOJEWÓDZTWO, name = 'Mężczyźni poniżej 18 lat',
+                marker = list(color = 'rgba(158, 171, 80, 1.0)',
+                              line = list(color = 'rgba(228, 221, 80, 1.0)',
+                                          width = 2)))%>%
+      add_trace(df,x = ~KOBIETY_POWYZEJ_18,y = ~WOJEWÓDZTWO, name = 'Kobiety powyżej 18 lat',
+                marker = list(color = 'rgba(158, 251, 20, 1.0)',
+                              line = list(color = 'rgba(158, 251, 20, 1.0)',
+                                          width = 2)))%>%
+      add_trace(df,x = ~MEZCZYZNI_POWYZEJ_18,y = ~WOJEWÓDZTWO, name = 'Mężczyźni powyżej 18 lat',
+                marker = list(color = 'rgba(250, 171, 250, 1.0)',
+                              line = list(color = 'rgba(250, 171, 250, 1.0)',
+                                          width = 2)))%>%
+      layout(xaxis = list(autotypenumbers = 'strict', title = 'Porównanie danych'),
              yaxis = list(title = ''),
              plot_bgcolor='#e5ecf6',
              xaxis = list(
