@@ -6,6 +6,12 @@ library(DT)
 df <-
   read.xlsx("https://github.com/pkglowczewski/zmed/raw/master/osoby_pl.xlsx",
             sheet = 1)
+df2 <-
+  read.xlsx("https://github.com/pkglowczewski/zmed/raw/master/2021.xlsx",
+            sheet = 1)
+df3 <-
+  read.xlsx("https://github.com/pkglowczewski/zmed/raw/master/2020.xlsx",
+            sheet = 1)
 ui <-navbarPage(
   theme = bslib::bs_theme(bootswatch = "united"),
   "ZMED - PKG & MT",
@@ -43,11 +49,14 @@ ui <-navbarPage(
                      plotlyOutput("barChart2", height = '800px', width = 'auto')),
             tabPanel("WYKRES BĄBELKOWY",
                      plotlyOutput("bubble", height = '800px', width = 'auto')),
+            tabPanel("PREDYKCJA",
+                     plotlyOutput("barChart3", height = '800px', width = 'auto'),
+                     plotlyOutput("barChart4", height = '800px', width = 'auto')),
              )
   
 )
 server <- function(input, output) {
-  print(sessionInfo())
+ 
   
   groupDataPlot1<- df%>%
     group_by(WOJEWÓDZTWO)%>%
@@ -180,6 +189,59 @@ server <- function(input, output) {
       layout(title = 'Ludzie poniżej 18 roku życia wg województw',
              xaxis = list(showgrid = FALSE),
              yaxis = list(showgrid = FALSE))
+  })
+  headData2022 <- df%>%
+    group_by(WOJEWÓDZTWO)%>%
+    summarise(WSZYSCY = sum(WSZYSCY),KOBIETY_PONIZEJ_18 = sum(KOBIETY_PONIZEJ_18),MEZCZYZNI_PONIZEJ_18 = sum(MEZCZYZNI_PONIZEJ_18))
+  headData2021 <- df2%>%
+    group_by(WOJEWÓDZTWO)%>%
+    summarise(WSZYSCY = sum(WSZYSCY),KOBIETY_PONIZEJ_18 = sum(KOBIETY_PONIZEJ_18),MEZCZYZNI_PONIZEJ_18 = sum(MEZCZYZNI_PONIZEJ_18))
+  headData2020 <- df3%>%
+    group_by(WOJEWÓDZTWO)%>%
+    summarise(WSZYSCY = sum(WSZYSCY),KOBIETY_PONIZEJ_18 = sum(KOBIETY_PONIZEJ_18),MEZCZYZNI_PONIZEJ_18 = sum(MEZCZYZNI_PONIZEJ_18))
+  
+  print(headData2020)
+  print(headData2021)
+  print(headData2022)
+  mod = lm(WSZYSCY ~ KOBIETY_PONIZEJ_18 + MEZCZYZNI_PONIZEJ_18 ,data=headData2021)
+  print(summary(mod))
+  wszyscyData <- data.frame(WSZYSCY = headData2022$WSZYSCY,KOBIETY_PONIZEJ_18=headData2022$KOBIETY_PONIZEJ_18,MEZCZYZNI_PONIZEJ_18=headData2022$MEZCZYZNI_PONIZEJ_18)
+  predictData<-data.frame(WSZYSCY =c(predict(mod, newdata=wszyscyData)))
+  output$barChart3 <- renderPlotly({
+    plot_ly(headData2022, x = ~WSZYSCY, y = ~WOJEWÓDZTWO, type = 'bar', orientation = 'h',
+            marker = list(color = 'rgba(246, 78, 139, 1.0)',
+                          line = list(color = 'rgba(246, 78, 139, 1.0)',
+                                      width = 2)),name = 'WSZYSCY')%>%
+      layout(xaxis = list(autotypenumbers = 'strict', title = 'Porównanie danych'),
+             yaxis = list(title = ''),
+             plot_bgcolor='#e5ecf6',
+             xaxis = list(
+               zerolinecolor = '#ffff',
+               zerolinewidth = 2,
+               gridcolor = 'ffff'),
+             yaxis = list(
+               zerolinecolor = '#ffff',
+               zerolinewidth = 2,
+               gridcolor = 'ffff'))
+    
+  })
+  output$barChart4 <- renderPlotly({
+    plot_ly(predictData, x = ~WSZYSCY, type = 'bar', orientation = 'h',
+            marker = list(color = 'rgba(246, 78, 139, 1.0)',
+                          line = list(color = 'rgba(246, 78, 139, 1.0)',
+                                      width = 2)),name = 'WSZYSCY')%>%
+      layout(xaxis = list(autotypenumbers = 'strict', title = 'Porównanie danych'),
+             yaxis = list(title = ''),
+             plot_bgcolor='#e5ecf6',
+             xaxis = list(
+               zerolinecolor = '#ffff',
+               zerolinewidth = 2,
+               gridcolor = 'ffff'),
+             yaxis = list(
+               zerolinecolor = '#ffff',
+               zerolinewidth = 2,
+               gridcolor = 'ffff'))
+    
   })
 }
 
