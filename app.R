@@ -10,7 +10,7 @@ df2 <-
   read.xlsx("https://github.com/pkglowczewski/zmed/raw/master/2021.xlsx",
             sheet = 1)
 df3 <-
-  read.xlsx("https://github.com/pkglowczewski/zmed/raw/master/2020.xlsx",
+  read.xlsx("https://github.com/pkglowczewski/zmed/raw/master/Wszyscy_dane.xlsx",
             sheet = 1)
 ui <-navbarPage(
   theme = bslib::bs_theme(bootswatch = "united"),
@@ -50,8 +50,7 @@ ui <-navbarPage(
             tabPanel("WYKRES BĄBELKOWY",
                      plotlyOutput("bubble", height = '800px', width = 'auto')),
             tabPanel("PREDYKCJA",
-                     plotlyOutput("barChart3", height = '800px', width = 'auto'),
-                     plotlyOutput("barChart4", height = '800px', width = 'auto')),
+                     plotlyOutput("barChart3", height = '800px', width = 'auto')),
              )
   
 )
@@ -196,40 +195,31 @@ server <- function(input, output) {
   headData2021 <- df2%>%
     group_by(WOJEWÓDZTWO)%>%
     summarise(WSZYSCY = sum(WSZYSCY),KOBIETY_PONIZEJ_18 = sum(KOBIETY_PONIZEJ_18),MEZCZYZNI_PONIZEJ_18 = sum(MEZCZYZNI_PONIZEJ_18))
-  headData2020 <- df3%>%
+  wszyscy_data <- df3%>%
     group_by(WOJEWÓDZTWO)%>%
-    summarise(WSZYSCY = sum(WSZYSCY),KOBIETY_PONIZEJ_18 = sum(KOBIETY_PONIZEJ_18),MEZCZYZNI_PONIZEJ_18 = sum(MEZCZYZNI_PONIZEJ_18))
+    summarise(WSZYSCY2020 = sum(WSZYSCY2020),WSZYSCY2021 = sum(WSZYSCY2021))
   
-  print(headData2020)
   print(headData2021)
   print(headData2022)
-  mod = lm(WSZYSCY ~ KOBIETY_PONIZEJ_18 + MEZCZYZNI_PONIZEJ_18 ,data=headData2021)
+  print(wszyscy_data)
+  mod = lm(WSZYSCY2021 ~ WSZYSCY2020 ,data=wszyscy_data)
   print(summary(mod))
-  wszyscyData <- data.frame(WSZYSCY = headData2022$WSZYSCY,KOBIETY_PONIZEJ_18=headData2022$KOBIETY_PONIZEJ_18,MEZCZYZNI_PONIZEJ_18=headData2022$MEZCZYZNI_PONIZEJ_18)
-  predictData<-data.frame(WSZYSCY =c(predict(mod, newdata=wszyscyData)))
+  wszyscyData <- data.frame(WSZYSCY2020 = headData2022$WSZYSCY)
+  print(predict(mod, newdata=wszyscyData))
+  danePredict <- predict(mod, newdata=wszyscyData)
+  dataPredicotr <- data.frame(wszyscyData,WSZYSCY2023 = danePredict, WOJEWÓDZTWO =headData2022$WOJEWÓDZTWO)
+  print(dataPredicotr)  
+  
+  
   output$barChart3 <- renderPlotly({
-    plot_ly(headData2022, x = ~WSZYSCY, y = ~WOJEWÓDZTWO, type = 'bar', orientation = 'h',
+    plot_ly(dataPredicotr, x = ~WSZYSCY2020, y = ~WOJEWÓDZTWO, type = 'bar', orientation = 'h',
             marker = list(color = 'rgba(246, 78, 139, 1.0)',
                           line = list(color = 'rgba(246, 78, 139, 1.0)',
-                                      width = 2)),name = 'WSZYSCY')%>%
-      layout(xaxis = list(autotypenumbers = 'strict', title = 'Porównanie danych'),
-             yaxis = list(title = ''),
-             plot_bgcolor='#e5ecf6',
-             xaxis = list(
-               zerolinecolor = '#ffff',
-               zerolinewidth = 2,
-               gridcolor = 'ffff'),
-             yaxis = list(
-               zerolinecolor = '#ffff',
-               zerolinewidth = 2,
-               gridcolor = 'ffff'))
-    
-  })
-  output$barChart4 <- renderPlotly({
-    plot_ly(predictData, x = ~WSZYSCY, type = 'bar', orientation = 'h',
-            marker = list(color = 'rgba(246, 78, 139, 1.0)',
-                          line = list(color = 'rgba(246, 78, 139, 1.0)',
-                                      width = 2)),name = 'WSZYSCY')%>%
+                                      width = 2)),name = '2022')%>%
+      add_trace(dataPredicotr,x = ~WSZYSCY2023,y = ~WOJEWÓDZTWO, name = 'PRZEWIDYWANIA 2023',
+                marker = list(color = 'rgba(77, 71, 130, 1.0)',
+                              line = list(color = 'rgba(58, 71, 80, 1.0)',
+                                          width = 2)))%>%
       layout(xaxis = list(autotypenumbers = 'strict', title = 'Porównanie danych'),
              yaxis = list(title = ''),
              plot_bgcolor='#e5ecf6',
